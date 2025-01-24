@@ -3,6 +3,7 @@ package server
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 )
 
@@ -25,17 +26,16 @@ func (s *APIServer) Run() {
 
 	fmt.Println("Server is running on port", s.serverPort)
 	if err := http.ListenAndServe(s.serverPort, &s.router); err != nil {
-		fmt.Println("Error starting server:", err)
+		fmt.Println("Error server crashed:", err)
 	}
 }
 
 func (s *APIServer) registerRoutes() {
-	s.router.HandleFunc("/2", s.serveHTML)
+	s.router.HandleFunc("/GPT", s.callGPT)
 	s.router.HandleFunc("/", s.serveHTML)
 	s.router.HandleFunc("/translate", s.translate)
 	s.router.HandleFunc("/test/{id}", s.test)
-
-	s.router.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("./static"))))
+	s.router.Handle("/static/", http.FileServer(http.Dir("./static")))
 
 }
 
@@ -44,7 +44,6 @@ func (s *APIServer) serveHTML(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *APIServer) translate(w http.ResponseWriter, r *http.Request) {
-
 	writeJSON(w, 200, "hello World")
 }
 
@@ -52,6 +51,18 @@ func (s *APIServer) test(w http.ResponseWriter, r *http.Request) {
 	data := r.PathValue("id")
 	fmt.Printf("Value from URL: %s\n", data)
 	writeJSON(w, 200, data)
+}
+
+func (s *APIServer) callGPT(w http.ResponseWriter, r *http.Request) {
+	//promt := "Your a bot"
+	w.Header().Set("Content-Type", "application/json")
+	test, err := http.Get("https://api.openai.com/v1/chat/completions")
+
+	if err != nil {
+		log.Fatal("big F", err)
+	}
+	fmt.Println(test)
+	writeJSON(w, 200, test)
 }
 
 // Helper
