@@ -1,0 +1,29 @@
+func (s *APIServer) serveGPT(w http.ResponseWriter, r *http.Request) {
+	// Ensure the method is POST
+	if r.Method != http.MethodPost {
+		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Parse the form data from HTMX
+	err := r.ParseForm()
+	if err != nil {
+		http.Error(w, "Failed to parse form", http.StatusBadRequest)
+		return
+	}
+
+	// Extract the product name from the form data
+	product := r.FormValue("product")
+	if product == "" {
+		http.Error(w, "Product field is required", http.StatusBadRequest)
+		return
+	}
+
+	// Generate a test response (you can replace this with GPT logic later)
+	responseText := fmt.Sprintf("You entered: %s", product)
+
+	// Send the response back as plain text
+	w.Header().Set("Content-Type", "text/plain")
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte(responseText))
+}

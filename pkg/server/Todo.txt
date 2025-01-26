@@ -1,0 +1,8 @@
+Todo
+
+
+SQL server
+    API unique ID
+    date
+    Add requested description + HS code
+    token_amount_spent

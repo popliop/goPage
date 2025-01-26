@@ -1,4 +1,4 @@
-package main
+package server
 
 import (
 	"encoding/json"
@@ -11,6 +11,11 @@ import (
 
 	_ "github.com/joho/godotenv/autoload"
 )
+
+// Data for GPT
+const systemContent = "Provide the most accurate Swedish export tariff code for the given product. -The code must be exactly 6 digits.- Indicate your confidence level as a percentage.- Only respond if your confidence is above 95%.- If unsure or unable to provide an answer, respond with 'Unable to determine.'- Do not include any additional text or explanation beyond the code and confidence level."
+
+const gptModel = "gpt-3.5-turbo"
 
 type GPTResponse struct {
 	Choices []Choice `json:"choices"`
@@ -32,25 +37,36 @@ type GPTPost struct {
 	ApiKey string
 }
 
-func newGPTPost() GPTPost {
+func newGPTPost(userContent string) GPTPost {
+
+	jsonBody := fmt.Sprintf(`{
+	"model": "%s",
+	"messages": [
+			{"role": "system", "content": "%s"},
+			{"role": "user", "content": "%s"}
+		]
+	}`, gptModel, systemContent, userContent)
+
 	return GPTPost{
 		URL:    "https://api.openai.com/v1/chat/completions",
-		Body:   strings.NewReader(`{"model": "gpt-3.5-turbo", "messages": [{"role": "system", "content": "ONLY GIVE ACCURATE SWEDISH TARRIF CODE. ONLY DIGITS NO FURTHER TEXT"},{"role": "user", "content": "telephone"}]}`),
+		Body:   strings.NewReader(jsonBody),
 		Method: "POST",
 		ApiKey: os.Getenv("GPT_API_KEY"),
 	}
 }
 
-func main() {
+func sendtoGPT(item string) (responseBack string) {
 
-	gpt := newGPTPost()
+	gpt := newGPTPost(string(item))
+
+	fmt.Println(gpt)
 
 	req, err := http.NewRequest(gpt.Method, gpt.URL, gpt.Body)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	setHeaders(req, newGPTPost().ApiKey)
+	setHeaders(req, gpt.ApiKey)
 
 	response, err := sendRequest(req)
 	if err != nil {
@@ -68,8 +84,9 @@ func main() {
 		log.Fatal(err)
 	}
 
-	fmt.Println(result.Choices[0].Message.Content)
+	//fmt.Println("Result: ", result.Choices[0].Message.Content)
 
+	return result.Choices[0].Message.Content
 }
 
 func setHeaders(req *http.Request, apikey string) {
