@@ -13,7 +13,12 @@ import (
 )
 
 // Data for GPT
-const systemContent = "Provide the most accurate Swedish export tariff code for the given product. -The code must be exactly 6 digits.- Indicate your confidence level as a percentage.- Only respond if your confidence is above 95%.- If unsure or unable to provide an answer, respond with 'Unable to determine.'- Do not include any additional text or explanation beyond the code and confidence level."
+const systemContent = `Provide the most accurate Swedish export tariff code for the given product. 
+-The code must be exactly 6 digits.
+- Indicate your confidence level as a percentage.
+- Only respond if your confidence is above 95%.
+- If unsure or unable to provide an answer, respond with 'Unable to determine'.
+- Do not include any additional text or explanation beyond the code and confidence level.`
 
 const gptModel = "gpt-3.5-turbo"
 
@@ -45,7 +50,9 @@ func newGPTPost(userContent string) GPTPost {
 			{"role": "system", "content": "%s"},
 			{"role": "user", "content": "%s"}
 		]
-	}`, gptModel, systemContent, userContent)
+	}`, gptModel, strings.ReplaceAll(systemContent, "\n", ""), userContent)
+
+	fmt.Println(jsonBody)
 
 	return GPTPost{
 		URL:    "https://api.openai.com/v1/chat/completions",
@@ -59,8 +66,6 @@ func sendtoGPT(item string) (responseBack string) {
 
 	gpt := newGPTPost(string(item))
 
-	fmt.Println(gpt)
-
 	req, err := http.NewRequest(gpt.Method, gpt.URL, gpt.Body)
 	if err != nil {
 		log.Fatal(err)
@@ -68,25 +73,17 @@ func sendtoGPT(item string) (responseBack string) {
 
 	setHeaders(req, gpt.ApiKey)
 
-	response, err := sendRequest(req)
+	result, err := handleResponse(req)
 	if err != nil {
-		log.Fatal(err)
-	}
-	defer response.Body.Close()
-
-	responseBody, err := io.ReadAll(response.Body)
-	if err != nil {
-		log.Fatal(err)
+		log.Println("Error handle response")
 	}
 
-	result, err := parseJson(responseBody)
-	if err != nil {
-		log.Fatal(err)
+	if len(result.Choices) > 0 && result.Choices[0].Message.Content != "" {
+		return result.Choices[0].Message.Content
+	} else {
+		log.Println("Choices slice is empty or content is missing")
+		return "" // Or handle it appropriately (e.g., return an error)
 	}
-
-	//fmt.Println("Result: ", result.Choices[0].Message.Content)
-
-	return result.Choices[0].Message.Content
 }
 
 func setHeaders(req *http.Request, apikey string) {
@@ -101,6 +98,25 @@ func sendRequest(req *http.Request) (*http.Response, error) {
 		return nil, fmt.Errorf("bad response: %w", err)
 	}
 	return response, nil
+}
+
+func handleResponse(r *http.Request) (*GPTResponse, error) {
+	response, err := sendRequest(r)
+	if err != nil {
+		return nil, err
+	}
+	defer response.Body.Close()
+
+	responseBody, err := io.ReadAll(response.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	result, err := parseJson(responseBody)
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
 }
 
 func parseJson(body []byte) (*GPTResponse, error) {

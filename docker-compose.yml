@@ -1,0 +1,9 @@
+version: "3.8"
+services:
+  gopage:
+    image: popliop/gopage
+    ports:
+      - "80:80" # Port mapping using environment variable
+    environment:
+      - GPT_API_KEY=${GPT_API_KEY} # Pass the API_KEY from the .env file
+

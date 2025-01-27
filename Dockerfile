@@ -30,4 +30,4 @@ WORKDIR /app
 ENTRYPOINT ["./app"]
 EXPOSE 80
 
-LABEL Name=popliop/gopage Version=0.0.1
+LABEL Name=popliop/gopage Version=1
